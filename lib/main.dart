@@ -25,7 +25,9 @@ Future<void> main() async {
 }
 
 class HTrackApp extends StatelessWidget {
-  const HTrackApp({super.key});
+   final Widget? home;
+
+  const HTrackApp({super.key, this.home});
 
   @override
   Widget build(BuildContext context) {
@@ -38,7 +40,7 @@ class HTrackApp extends StatelessWidget {
         ),
         useMaterial3: true,
       ),
-      home: const AuthScreen(),
+     home: home ?? const AuthScreen(),
     );
   }
 }
