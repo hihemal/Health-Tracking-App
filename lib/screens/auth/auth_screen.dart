@@ -2,6 +2,8 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../dashboard/dashboard_screen.dart';
+
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});
 
@@ -54,12 +56,20 @@ class _AuthScreenState extends State<AuthScreen> {
               ),
             ),
           );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Account created successfully!'),
+            ),
+          );
         }
       } else {
         await supabase.auth.signInWithPassword(
           email: _emailController.text.trim(),
           password: _passwordController.text,
         );
+
+        // Supabase auth stream will open the dashboard automatically.
       }
     } on AuthException catch (error) {
       if (!mounted) return;
@@ -71,8 +81,11 @@ class _AuthScreenState extends State<AuthScreen> {
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Something went wrong: $error')),
+        const SnackBar(
+          content: Text('Something went wrong. Please try again.'),
+        ),
       );
+      debugPrint('Authentication error: $error');
     } finally {
       if (mounted) {
         setState(() => _loading = false);
@@ -80,59 +93,7 @@ class _AuthScreenState extends State<AuthScreen> {
     }
   }
 
-  Future<void> _signOut() async {
-    await supabase.auth.signOut();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final user = supabase.auth.currentUser;
-
-    // Show this when a user is already logged in.
-    if (user != null) {
-      return Scaffold(
-        appBar: AppBar(
-          title: const Text('Htrack26'),
-          actions: [
-            IconButton(
-              onPressed: _signOut,
-              icon: const Icon(Icons.logout),
-              tooltip: 'Sign out',
-            ),
-          ],
-        ),
-        body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(
-                Icons.check_circle,
-                color: Colors.green,
-                size: 70,
-              ),
-              const SizedBox(height: 16),
-              const Text(
-                'Login Successful!',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 10),
-              Text(user.email ?? ''),
-              const SizedBox(height: 10),
-              const Text('Welcome to Htrack26'),
-              const SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: _signOut,
-                child: const Text('Sign Out'),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-
+  Widget _buildAuthForm() {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Htrack26'),
@@ -221,9 +182,7 @@ class _AuthScreenState extends State<AuthScreen> {
                     onPressed: _loading ? null : _authenticate,
                     child: _loading
                         ? const CircularProgressIndicator()
-                        : Text(
-                            _isRegister ? 'Register' : 'Login',
-                          ),
+                        : Text(_isRegister ? 'Register' : 'Login'),
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -247,6 +206,23 @@ class _AuthScreenState extends State<AuthScreen> {
           ),
         ),
       ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<AuthState>(
+      stream: supabase.auth.onAuthStateChange,
+      builder: (context, snapshot) {
+        final session =
+            snapshot.data?.session ?? supabase.auth.currentSession;
+
+        if (session != null) {
+          return const DashboardScreen();
+        }
+
+        return _buildAuthForm();
+      },
     );
   }
 }
