@@ -1,363 +1,146 @@
 
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:fl_chart/fl_chart.dart';
+import 'analytics_category_screen.dart';
 
-class HealthAnalyticsScreen extends StatefulWidget {
+class HealthAnalyticsScreen extends StatelessWidget {
   const HealthAnalyticsScreen({super.key});
 
-  @override
-  State<HealthAnalyticsScreen> createState() =>
-      _HealthAnalyticsScreenState();
-}
-
-class _HealthAnalyticsScreenState
-    extends State<HealthAnalyticsScreen> {
-  final supabase = Supabase.instance.client;
-
-  late Future<List<Map<String, dynamic>>> _recordsFuture;
-
-  @override
-  void initState() {
-    super.initState();
-    _recordsFuture = _loadBloodPressureRecords();
-  }
-
-  // Fetch this patient's blood pressure records.
-  Future<List<Map<String, dynamic>>>
-      _loadBloodPressureRecords() async {
-    final user = supabase.auth.currentUser;
-
-    if (user == null) {
-      throw Exception('Please log in to view your analytics.');
-    }
-
-    final response = await supabase
-        .from('health_records')
-        .select('value, secondary_value, recorded_at')
-        .eq('user_id', user.id)
-        .eq('record_type', 'blood_pressure')
-        .order('recorded_at', ascending: true);
-
-    return List<Map<String, dynamic>>.from(response);
-  }
-
-  void _refreshRecords() {
-    setState(() {
-      _recordsFuture = _loadBloodPressureRecords();
-    });
-  }
-
-  String _formatDate(dynamic value) {
-    final date = DateTime.parse(value.toString()).toLocal();
-
-    return '${date.day}/${date.month}';
-  }
-
-  Widget _buildLegend(Color color, String label) {
-    return Row(
-      children: [
-        Container(
-          width: 12,
-          height: 12,
-          decoration: BoxDecoration(
-            color: color,
-            shape: BoxShape.circle,
-          ),
-        ),
-        const SizedBox(width: 6),
-        Text(label),
+  final List<Map<String, dynamic>> categories = const [
+    {
+      'name': 'Vital Signs',
+      'description': 'Blood pressure, heart rate, oxygen and more',
+      'icon': Icons.favorite,
+      'color': Colors.red,
+      'measurements': [
+        {'name': 'Blood Pressure', 'recordType': 'blood_pressure', 'unit': 'mmHg'},
+        {'name': 'Heart Rate', 'recordType': 'heart_rate', 'unit': 'bpm'},
+        {'name': 'SpO2', 'recordType': 'spo2', 'unit': '%'},
+        {'name': 'Temperature', 'recordType': 'temperature', 'unit': '°C'},
+        {'name': 'Respiratory Rate', 'recordType': 'respiratory_rate', 'unit': 'breaths/min'},
       ],
-    );
-  }
-
-  Widget _buildBloodPressureChart(
-      List<Map<String, dynamic>> records) {
-    final systolicSpots = <FlSpot>[];
-    final diastolicSpots = <FlSpot>[];
-
-    final allValues = <double>[];
-
-    for (int i = 0; i < records.length; i++) {
-      final systolic =
-          (records[i]['value'] as num).toDouble();
-
-      final diastolic =
-          (records[i]['secondary_value'] as num?)
-              ?.toDouble();
-
-      systolicSpots.add(
-        FlSpot(i.toDouble(), systolic),
-      );
-
-      allValues.add(systolic);
-
-      if (diastolic != null) {
-        diastolicSpots.add(
-          FlSpot(i.toDouble(), diastolic),
-        );
-
-        allValues.add(diastolic);
-      }
-    }
-
-    final minValue = allValues.reduce(
-      (a, b) => a < b ? a : b,
-    );
-
-    final maxValue = allValues.reduce(
-      (a, b) => a > b ? a : b,
-    );
-
-    final padding = ((maxValue - minValue) * 0.2)
-        .clamp(10.0, 30.0);
-
-    final interval =
-        (records.length / 5).ceil().toDouble();
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            _buildLegend(
-              Colors.teal,
-              'Systolic',
-            ),
-            const SizedBox(width: 20),
-            _buildLegend(
-              Colors.orange,
-              'Diastolic',
-            ),
-          ],
-        ),
-
-        const SizedBox(height: 24),
-
-        SizedBox(
-          height: 260,
-          child: LineChart(
-            LineChartData(
-              minY: minValue - padding,
-              maxY: maxValue + padding,
-
-              minX: 0,
-              maxX: (records.length - 1).toDouble(),
-
-              gridData: FlGridData(
-                show: true,
-                drawVerticalLine: false,
-              ),
-
-              borderData: FlBorderData(
-                show: false,
-              ),
-
-              titlesData: FlTitlesData(
-                topTitles: AxisTitles(
-                  sideTitles: SideTitles(
-                    showTitles: false,
-                  ),
-                ),
-
-                rightTitles: AxisTitles(
-                  sideTitles: SideTitles(
-                    showTitles: false,
-                  ),
-                ),
-
-                leftTitles: AxisTitles(
-                  axisNameWidget: const Text('mmHg'),
-                  sideTitles: SideTitles(
-                    showTitles: true,
-                    reservedSize: 42,
-                  ),
-                ),
-
-                bottomTitles: AxisTitles(
-                  sideTitles: SideTitles(
-                    showTitles: true,
-                    reservedSize: 35,
-                    interval: interval,
-                    getTitlesWidget: (value, meta) {
-                      final index = value.round();
-
-                      if (index < 0 ||
-                          index >= records.length) {
-                        return const SizedBox.shrink();
-                      }
-
-                      return SideTitleWidget(
-                        meta: meta,
-                        child: Text(
-                          _formatDate(
-                            records[index]['recorded_at'],
-                          ),
-                          style: const TextStyle(
-                            fontSize: 10,
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              ),
-
-              lineBarsData: [
-                LineChartBarData(
-                  spots: systolicSpots,
-                  isCurved: true,
-                  color: Colors.teal,
-                  barWidth: 3,
-                  dotData: FlDotData(show: true),
-                  belowBarData: BarAreaData(
-                    show: false,
-                  ),
-                ),
-
-                LineChartBarData(
-                  spots: diastolicSpots,
-                  isCurved: true,
-                  color: Colors.orange,
-                  barWidth: 3,
-                  dotData: FlDotData(show: true),
-                  belowBarData: BarAreaData(
-                    show: false,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
+    },
+    {
+      'name': 'Body Measurements',
+      'description': 'Weight, height and waist measurements',
+      'icon': Icons.monitor_weight,
+      'color': Colors.blue,
+      'measurements': [
+        {'name': 'Weight', 'recordType': 'weight', 'unit': 'kg'},
+        {'name': 'Height', 'recordType': 'height', 'unit': 'cm'},
+        {'name': 'Waist', 'recordType': 'waist', 'unit': 'cm'},
       ],
-    );
-  }
+    },
+    {
+      'name': 'Blood Glucose',
+      'description': 'Track your blood sugar levels',
+      'icon': Icons.water_drop,
+      'color': Colors.orange,
+      'measurements': [
+        {'name': 'Fasting Glucose', 'recordType': 'blood_glucose_fasting', 'unit': 'mg/dL'},
+        {'name': 'Random Glucose', 'recordType': 'blood_glucose_random', 'unit': 'mg/dL'},
+      ],
+    },
+    {
+      'name': 'Laboratory',
+      'description': 'HbA1c, cholesterol and blood tests',
+      'icon': Icons.science,
+      'color': Colors.purple,
+      'measurements': [
+        {'name': 'HbA1c', 'recordType': 'hba1c', 'unit': '%'},
+        {'name': 'Cholesterol', 'recordType': 'cholesterol', 'unit': 'mg/dL'},
+        {'name': 'HDL', 'recordType': 'hdl', 'unit': 'mg/dL'},
+        {'name': 'LDL', 'recordType': 'ldl', 'unit': 'mg/dL'},
+        {'name': 'Triglycerides', 'recordType': 'triglycerides', 'unit': 'mg/dL'},
+        {'name': 'Hemoglobin', 'recordType': 'hemoglobin', 'unit': 'g/dL'},
+      ],
+    },
+    {
+      'name': 'Lifestyle',
+      'description': 'Sleep, daily steps and water intake',
+      'icon': Icons.nightlight_round,
+      'color': Colors.teal,
+      'measurements': [
+        {'name': 'Daily Steps', 'recordType': 'daily_steps', 'unit': 'steps'},
+        {'name': 'Sleep Duration', 'recordType': 'sleep_duration', 'unit': 'hours'},
+        {'name': 'Water Intake', 'recordType': 'water_intake', 'unit': 'liters'},
+      ],
+    },
+  ];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F8FA),
-
       appBar: AppBar(
         title: const Text('Health Analytics'),
         backgroundColor: Colors.white,
-        actions: [
-          IconButton(
-            onPressed: _refreshRecords,
-            icon: const Icon(Icons.refresh),
-            tooltip: 'Refresh',
-          ),
-        ],
       ),
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          const Text(
+            'Your Health Overview',
+            style: TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Select a category to explore your health measurements.',
+            style: TextStyle(color: Colors.grey),
+          ),
+          const SizedBox(height: 20),
 
-      body: FutureBuilder<List<Map<String, dynamic>>>(
-        future: _recordsFuture,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState ==
-              ConnectionState.waiting) {
-            return const Center(
-              child: CircularProgressIndicator(),
-            );
-          }
-
-          if (snapshot.hasError) {
-            return Center(
-              child: Padding(
-                padding: const EdgeInsets.all(20),
-                child: Text(
-                  'Could not load health records:\n'
-                  '${snapshot.error}',
-                  textAlign: TextAlign.center,
-                ),
+          ...categories.map((category) {
+            final measurements =
+                List<Map<String, String>>.from(
+              (category['measurements'] as List).map(
+                (item) => Map<String, String>.from(item),
               ),
             );
-          }
 
-          final records = snapshot.data ?? [];
-
-          if (records.isEmpty) {
-            return const Center(
-              child: Padding(
-                padding: EdgeInsets.all(24),
-                child: Text(
-                  'No blood pressure records found.\n'
-                  'Add some readings in Health Tracking '
-                  'to see your graph.',
-                  textAlign: TextAlign.center,
-                ),
-              ),
-            );
-          }
-
-          return ListView(
-            padding: const EdgeInsets.all(20),
-            children: [
-              const Text(
-                'Blood Pressure Trends',
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-
-              const SizedBox(height: 8),
-
-              Text(
-                '${records.length} recorded measurements',
-                style: const TextStyle(
-                  color: Colors.grey,
-                ),
-              ),
-
-              const SizedBox(height: 20),
-
-              Card(
-                color: Colors.white,
-                elevation: 1,
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: _buildBloodPressureChart(records),
-                ),
-              ),
-
-              const SizedBox(height: 20),
-
-              const Text(
-                'Recent Readings',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-
-              const SizedBox(height: 10),
-
-              ...records.reversed.take(5).map((record) {
-                final systolic =
-                    record['value'];
-
-                final diastolic =
-                    record['secondary_value'];
-
-                return Card(
-                  color: Colors.white,
-                  child: ListTile(
-                    leading: const Icon(
-                      Icons.favorite,
-                      color: Colors.teal,
-                    ),
-                    title: Text(
-                      '$systolic / $diastolic mmHg',
-                    ),
-                    subtitle: Text(
-                      _formatDate(record['recorded_at']),
-                    ),
+            return Card(
+              color: Colors.white,
+              margin: const EdgeInsets.only(bottom: 14),
+              child: ListTile(
+                contentPadding: const EdgeInsets.all(16),
+                leading: CircleAvatar(
+                  backgroundColor:
+                      (category['color'] as Color).withValues(alpha: 0.12),
+                  child: Icon(
+                    category['icon'] as IconData,
+                    color: category['color'] as Color,
                   ),
-                );
-              }),
-            ],
-          );
-        },
+                ),
+                title: Text(
+                  category['name'] as String,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                subtitle: Padding(
+                  padding: const EdgeInsets.only(top: 5),
+                  child: Text(
+                    category['description'] as String,
+                  ),
+                ),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => AnalyticsCategoryScreen(
+                        categoryName: category['name'] as String,
+                        measurements: measurements,
+                      ),
+                    ),
+                  );
+                },
+              ),
+            );
+          }),
+        ],
       ),
     );
   }
