@@ -1,3 +1,5 @@
+
+import '../analytics/health_analytics_screen.dart';
 import '../tracking/health_records_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -254,25 +256,44 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
       // Bottom Navigation Bar (currently visual only)
       
+
 bottomNavigationBar: NavigationBar(
   selectedIndex: 0,
   onDestinationSelected: (index) {
+    if (index == 1) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Reports feature coming soon!'),
+        ),
+      );
+    }
+
+    if (index == 2) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => const HealthRecordsScreen(),
+        ),
+      );
+    }
+
     if (index == 3) {
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => const ProfileScreen(),
+          builder: (_) => const HealthAnalyticsScreen(),
         ),
       );
     }
-    if (index == 2) {
-  Navigator.push(
-    context,
-    MaterialPageRoute(
-      builder: (_) => const HealthRecordsScreen(),
-    ),
-  );
-}
+
+    if (index == 4) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => const ProfileScreen(),
+        ),
+      );
+    }
   },
   destinations: const [
     NavigationDestination(
@@ -284,8 +305,12 @@ bottomNavigationBar: NavigationBar(
       label: 'Reports',
     ),
     NavigationDestination(
-      icon: Icon(Icons.show_chart),
+      icon: Icon(Icons.add_chart),
       label: 'Tracking',
+    ),
+    NavigationDestination(
+      icon: Icon(Icons.analytics),
+      label: 'Analytics',
     ),
     NavigationDestination(
       icon: Icon(Icons.person),
@@ -293,6 +318,7 @@ bottomNavigationBar: NavigationBar(
     ),
   ],
 ),
+
 
     );
   }
