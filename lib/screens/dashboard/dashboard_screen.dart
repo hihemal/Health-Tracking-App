@@ -1,9 +1,10 @@
-
+import '../tracking/health_records_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../widgets/health_card.dart';
 import '../../widgets/report_card.dart';
+import '../profile/profile_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -45,19 +46,35 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F8FA),
 
+      // App Bar
       appBar: AppBar(
         backgroundColor: Colors.white,
         title: const Text(
           'Htrack26',
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
+
         actions: [
-          const Padding(
-            padding: EdgeInsets.only(right: 8),
-            child: CircleAvatar(
-              child: Icon(Icons.person),
+          // Profile Button
+          Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: IconButton(
+              tooltip: 'My Profile',
+              icon: const CircleAvatar(
+                child: Icon(Icons.person),
+              ),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const ProfileScreen(),
+                  ),
+                );
+              },
             ),
           ),
+
+          // Sign Out Button
           IconButton(
             tooltip: 'Sign Out',
             icon: const Icon(Icons.logout),
@@ -80,13 +97,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ],
       ),
 
+      // Dashboard Body
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
 
-            // Dynamic user information
+            // Dynamic User Information
             FutureBuilder<Map<String, dynamic>?>(
               future: _profileFuture,
               builder: (context, snapshot) {
@@ -120,14 +138,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         fontWeight: FontWeight.bold,
                       ),
                     ),
+
                     const SizedBox(height: 6),
+
                     Text(
                       'Role: ${role[0].toUpperCase()}${role.substring(1)}',
                       style: const TextStyle(
                         color: Colors.grey,
                       ),
                     ),
+
                     const SizedBox(height: 6),
+
                     const Text(
                       'Welcome to your health dashboard.',
                       style: TextStyle(color: Colors.grey),
@@ -139,6 +161,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
             const SizedBox(height: 24),
 
+            // Health Overview
             const Text(
               'Health Overview',
               style: TextStyle(
@@ -158,7 +181,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     icon: Icons.description,
                   ),
                 ),
+
                 SizedBox(width: 12),
+
                 Expanded(
                   child: HealthCard(
                     title: 'Health Status',
@@ -171,6 +196,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
             const SizedBox(height: 28),
 
+            // Recent Reports Heading
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: const [
@@ -181,6 +207,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     fontWeight: FontWeight.bold,
                   ),
                 ),
+
                 Text(
                   'View all',
                   style: TextStyle(color: Colors.teal),
@@ -190,6 +217,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
             const SizedBox(height: 12),
 
+            // Report List
             const ReportCard(
               title: 'Blood Test',
               date: '01 November 2026',
@@ -211,6 +239,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ),
       ),
 
+      // Upload Report Button
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -223,27 +252,48 @@ class _DashboardScreenState extends State<DashboardScreen> {
         label: const Text('Upload Report'),
       ),
 
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: 0,
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.dashboard),
-            label: 'Home',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.description),
-            label: 'Reports',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.show_chart),
-            label: 'Tracking',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.person),
-            label: 'Profile',
-          ),
-        ],
-      ),
+      // Bottom Navigation Bar (currently visual only)
+      
+bottomNavigationBar: NavigationBar(
+  selectedIndex: 0,
+  onDestinationSelected: (index) {
+    if (index == 3) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => const ProfileScreen(),
+        ),
+      );
+    }
+    if (index == 2) {
+  Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (_) => const HealthRecordsScreen(),
+    ),
+  );
+}
+  },
+  destinations: const [
+    NavigationDestination(
+      icon: Icon(Icons.dashboard),
+      label: 'Home',
+    ),
+    NavigationDestination(
+      icon: Icon(Icons.description),
+      label: 'Reports',
+    ),
+    NavigationDestination(
+      icon: Icon(Icons.show_chart),
+      label: 'Tracking',
+    ),
+    NavigationDestination(
+      icon: Icon(Icons.person),
+      label: 'Profile',
+    ),
+  ],
+),
+
     );
   }
 }
